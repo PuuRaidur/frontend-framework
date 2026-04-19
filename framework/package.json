@@ -1,0 +1,15 @@
+{
+  "_comment": "npm package manifest — JSON does not allow // comments; use this field for notes.",
+  "name": "dot-js",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal front-end framework (SPA helpers): DOM, state, router, events, HTTP.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "build": "echo \"dot-js: no build step yet (plain ESM source).\""
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": "Workspace root — run npm install here to link framework/ and example/.",
+  "name": "dot-js-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo root: local framework package and example app (npm workspaces).",
+  "workspaces": [
+    "framework",
+    "example"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w example",
+    "build": "npm run build -w framework && npm run build -w example",
+    "preview": "npm run preview -w example"
+  }
+}

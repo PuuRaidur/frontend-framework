@@ -1,0 +1,12 @@
+# Dependencies installed by npm (regenerated with npm install).
+node_modules/
+
+# Vite production build output for the example app.
+dist/
+
+# macOS folder metadata (optional; safe to ignore in repos).
+.DS_Store
+
+# Logs from npm or local tooling.
+*.log
+npm-debug.log*
