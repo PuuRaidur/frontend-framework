@@ -2,7 +2,7 @@
 node_modules/
 
 # IDEA config
-/.idea
+.idea/
 
 # Vite production build output for the example app.
 dist/
