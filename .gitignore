@@ -1,6 +1,9 @@
 # Dependencies installed by npm (regenerated with npm install).
 node_modules/
 
+# IDEA config
+/.idea
+
 # Vite production build output for the example app.
 dist/
 
