@@ -15,45 +15,162 @@ import {
 const app = document.getElementById("app");
 if (!app) throw new Error('Missing #app root — check example/index.html');
 
-/** Tiny demo state; swap for Todo state later */
-const store = createStore({ count: 0, path: window.location.pathname });
+/** Todo app state */
+const store = createStore({
+  path: window.location.pathname,
+  todos: [
+    { id: 1, text: "Buy milk", done: false },
+    { id: 2, text: "Go out for a walk", done: false },
+    { id: 3, text: "Buy groceries", done: false },
+  ],
+  draft: "",
+  filter: "all", // "all" | "active" | "completed"
+});
 
-/** Renders the whole tree whenever state or route changes */
+const PATH_TO_FILTER = {
+  "/": "all",
+  "/active": "active",
+  "/completed": "completed",
+};
+
+const FILTER_TO_PATH = {
+  all: "/",
+  active: "/active",
+  completed: "/completed",
+};
+
+/** Keep typing smooth because this demo renderer remounts on each update. */
+function setDraftAndRestoreCaret(value) {
+  store.setState({ draft: value });
+  requestAnimationFrame(() => {
+    const input = document.getElementById("todo-input");
+    if (!(input instanceof HTMLInputElement)) return;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
+}
+
+function nextTodoId(todos) {
+  return todos.reduce((max, todo) => Math.max(max, todo.id), 0) + 1;
+}
+
 function render() {
-  const { count, path } = store.getState();
+  const { todos, draft, filter } = store.getState();
+  const visibleTodos =
+    filter === "active"
+      ? todos.filter((t) => !t.done)
+      : filter === "completed"
+      ? todos.filter((t) => t.done)
+      : todos;
+
   mount(
     app,
     h("div", { className: "app" }, [
       h("h1", null, "dot-js example"),
-      h("p", null, `Route: ${path}`),
-      h("p", null, `Count: ${count}`),
-      h(
-        "button",
-        {
-          onClick: () => store.setState({ count: count + 1 }),
+      h("ul", null, [
+        ...visibleTodos.map((todo) =>
+          h("li", {
+            className: "todo-row",
+            "data-id": String(todo.id),
+            style: {
+              cursor: "pointer",
+              textDecoration: todo.done ? "line-through" : "none",
+            },
+          }, [
+            `${todo.done ? "[x]" : "[ ]"} ${todo.text} `,
+            h("button", {
+              className: "todo-delete",
+              "data-id": String(todo.id),
+            }, "Delete"),
+          ])
+        ),
+      ]),
+      h("input", {
+        id: "todo-input",
+        value: draft,
+        onInput: (e) => setDraftAndRestoreCaret(e.target.value),
+        placeholder: "New todo...",
+      }),
+      h("button", {
+        onClick: () => {
+          const text = draft.trim();
+          if (!text) return;
+          store.setState((prev) => ({
+            todos: [
+              ...prev.todos,
+              { id: nextTodoId(prev.todos), text, done: false },
+            ],
+            draft: "",
+          }));
         },
-        "Increment"
-      ),
-      h(
-        "button",
-        {
-          onClick: () => navigate("/demo"),
-        },
-        'Go to /demo'
-      ),
+      }, "Add Todo"),
+      h("button", { onClick: () => navigate(FILTER_TO_PATH.all) }, "All"),
+      h("button", { onClick: () => navigate(FILTER_TO_PATH.active) }, "Active"),
+      h("button", { onClick: () => navigate(FILTER_TO_PATH.completed) }, "Completed"),
     ])
   );
 }
+
+/** Delegated delete handler: one listener for all current/future todo buttons. */
+function handleDeleteClick(event) {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const deleteBtn = target.closest(".todo-delete");
+  if (!deleteBtn) return;
+
+  event.stopPropagation();
+
+  const id = Number(deleteBtn.getAttribute("data-id"));
+  if (!Number.isFinite(id)) return;
+
+  store.setState((prev) => ({
+    todos: prev.todos.filter((t) => t.id !== id),
+  }));
+}
+
+/** Delegated row toggle handler for done/undone. */
+function handleRowToggleClick(event) {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+
+  // Keep delete clicks from toggling the row.
+  if (target.closest(".todo-delete")) return;
+
+  const row = target.closest(".todo-row");
+  if (!row) return;
+
+  const id = Number(row.getAttribute("data-id"));
+  if (!Number.isFinite(id)) return;
+
+  store.setState((prev) => ({
+    todos: prev.todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+  }));
+}
+
+app.addEventListener("click", handleDeleteClick);
+app.addEventListener("click", handleRowToggleClick);
 
 // Subscribe first so the router's initial setState triggers a render.
 store.subscribe(render);
 
 /** Sync URL path into the store on load, navigate(), and browser Back/Forward */
 const stopRouter = createRouter((path) => {
-  store.setState({ path });
+  const filter = PATH_TO_FILTER[path] ?? "all";
+  const normalizedPath = PATH_TO_FILTER[path] ? path : "/";
+
+  if (normalizedPath !== path) {
+    navigate(normalizedPath);
+    return;
+  }
+
+  store.setState({ path: normalizedPath, filter });
 });
 
 /** Example cleanup if hot-reload or tests tear down the app */
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => stopRouter());
+  import.meta.hot.dispose(() => {
+    app.removeEventListener("click", handleDeleteClick);
+    app.removeEventListener("click", handleRowToggleClick);
+    stopRouter();
+  });
 }
