@@ -20,6 +20,7 @@ Use this as a **starting point** — adjust if one person prefers docs or toolin
 - Router (`createRouter`, `navigate`) and URL ↔ state wiring in `example/src/main.js`.
 - HTTP helpers (`http.get` / `http.post`) and any `fetch` usage in the example (e.g. Todo API).
 - Vite config, scripts, and **documentation** updates under `framework/docs/` plus pointers in the root `README.md`.
+- Integration of persistence features and HTTP demonstrations in the example app.
 
 ## How you work together
 

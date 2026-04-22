@@ -40,6 +40,31 @@ createRouter((path) => store.setState({ path }));
 navigate("/tasks");
 ```
 
+## Make HTTP requests
+
+```javascript
+import { http } from "dot-js";
+
+// GET request
+const data = await http.get("https://api.example.com/todos");
+
+// POST request
+const result = await http.post("https://api.example.com/todos", {
+  title: "New Todo",
+  completed: false
+});
+```
+
+## Persist state between sessions
+
+```javascript
+// Automatically saves to localStorage
+const store = createStore({ count: 0 }, "my-app-state");
+
+// The state will be restored on reload
+store.setState({ count: store.getState().count + 1 });
+```
+
 ## Next steps
 
 - Read [Features](features.md) for the full API.

@@ -19,12 +19,13 @@ mount(
 
 ## State: `createStore`
 
-- **`getState()`** — read current state (treat as immutable from the UI’s perspective).
+- **`getState()`** — read current state (treat as immutable from the UI's perspective).
 - **`setState(partial)`** — merge updates; notifies subscribers.
 - **`subscribe(fn)`** — run after each `setState`; returns unsubscribe.
+- **Persistence** — optionally persists state to localStorage by passing a key as second parameter.
 
 ```javascript
-const store = createStore({ n: 0 });
+const store = createStore({ n: 0 }, "my-app-state"); // persists to localStorage
 store.subscribe(() => console.log(store.getState()));
 store.setState({ n: 1 });
 ```
