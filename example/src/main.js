@@ -9,6 +9,7 @@ import {
   createStore,
   createRouter,
   navigate,
+  http,
 } from "dot-js";
 
 /** Root element provided by index.html */
@@ -25,7 +26,35 @@ const store = createStore({
   ],
   draft: "",
   filter: "all", // "all" | "active" | "completed"
-});
+  loading: false,
+  error: null,
+}, "dot-js-todos-state");
+
+// Load todos from API on startup
+async function loadTodosFromAPI() {
+  store.setState({ loading: true, error: null });
+  try {
+    // Using a mock API endpoint for demonstration
+    const todos = await http.get("https://jsonplaceholder.typicode.com/todos?_limit=5");
+    store.setState({
+      todos: todos.map((todo, index) => ({
+        id: index + 1,
+        text: todo.title,
+        done: todo.completed,
+      })),
+      loading: false,
+    });
+  } catch (error) {
+    store.setState({
+      error: "Failed to load todos from API",
+      loading: false,
+    });
+    console.error("Failed to load todos:", error);
+  }
+}
+
+// Call this function to demonstrate HTTP functionality
+// loadTodosFromAPI();
 
 const PATH_TO_FILTER = {
   "/": "all",
@@ -55,7 +84,7 @@ function nextTodoId(todos) {
 }
 
 function render() {
-  const { todos, draft, filter } = store.getState();
+  const { todos, draft, filter, loading, error } = store.getState();
   const visibleTodos =
     filter === "active"
       ? todos.filter((t) => !t.done)
@@ -63,28 +92,30 @@ function render() {
       ? todos.filter((t) => t.done)
       : todos;
 
+  const todoItems = visibleTodos.map((todo) =>
+    h("li", {
+      className: "todo-row",
+      "data-id": String(todo.id),
+      style: {
+        cursor: "pointer",
+        textDecoration: todo.done ? "line-through" : "none",
+      },
+    }, [
+      `${todo.done ? "[x]" : "[ ]"} ${todo.text} `,
+      h("button", {
+        className: "todo-delete",
+        "data-id": String(todo.id),
+      }, "Delete"),
+    ])
+  );
+
   mount(
     app,
     h("div", { className: "app" }, [
       h("h1", null, "dot-js example"),
-      h("ul", null, [
-        ...visibleTodos.map((todo) =>
-          h("li", {
-            className: "todo-row",
-            "data-id": String(todo.id),
-            style: {
-              cursor: "pointer",
-              textDecoration: todo.done ? "line-through" : "none",
-            },
-          }, [
-            `${todo.done ? "[x]" : "[ ]"} ${todo.text} `,
-            h("button", {
-              className: "todo-delete",
-              "data-id": String(todo.id),
-            }, "Delete"),
-          ])
-        ),
-      ]),
+      error && h("div", { style: { color: "red" } }, error),
+      loading && h("div", null, "Loading todos..."),
+      h("ul", null, todoItems),
       h("input", {
         id: "todo-input",
         value: draft,
@@ -107,6 +138,10 @@ function render() {
       h("button", { onClick: () => navigate(FILTER_TO_PATH.all) }, "All"),
       h("button", { onClick: () => navigate(FILTER_TO_PATH.active) }, "Active"),
       h("button", { onClick: () => navigate(FILTER_TO_PATH.completed) }, "Completed"),
+      h("button", { 
+        onClick: loadTodosFromAPI,
+        disabled: loading,
+      }, "Load from API"),
     ])
   );
 }
