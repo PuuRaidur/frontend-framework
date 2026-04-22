@@ -34,12 +34,14 @@ const store = createStore({
 async function loadTodosFromAPI() {
   store.setState({ loading: true, error: null });
   try {
-    // Using a mock API endpoint for demonstration
-    const todos = await http.get("https://jsonplaceholder.typicode.com/todos?_limit=5");
+    // Using a more reliable approach to get English todo items
+    const response = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=5');
+    const apiTodos = await response.json();
+    
     store.setState({
-      todos: todos.map((todo, index) => ({
-        id: index + 1,
-        text: todo.title,
+      todos: apiTodos.map((todo, index) => ({
+        id: todo.id,
+        text: `Todo: ${todo.title}`,  // Prefixing to make it clearer
         done: todo.completed,
       })),
       loading: false,
