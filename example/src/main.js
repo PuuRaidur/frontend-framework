@@ -1,7 +1,7 @@
-/**
- * Example bootstrap: wire store + router + render into #app.
- * Replace this file with your Todo (or other) app as you build features.
- */
+// Example app for dot-js.
+// It's intentionally small, but it exercises: state, routing, event props, delegation, and HTTP.
+
+import "./style.css";
 
 import {
   h,
@@ -9,39 +9,40 @@ import {
   createStore,
   createRouter,
   navigate,
+  delegate,
   http,
 } from "dot-js";
 
-/** Root element provided by index.html */
 const app = document.getElementById("app");
 if (!app) throw new Error('Missing #app root — check example/index.html');
 
-/** Todo app state */
+// Optional perf flag: render long lists in chunks.
+const ENABLE_LAZY_TODOS = import.meta.env.VITE_LAZY_TODOS === "1";
+
 const store = createStore({
-  path: window.location.pathname,
   todos: [
     { id: 1, text: "Buy milk", done: false },
     { id: 2, text: "Go out for a walk", done: false },
     { id: 3, text: "Buy groceries", done: false },
   ],
-  draft: "",
   filter: "all", // "all" | "active" | "completed"
   loading: false,
+  posting: false,
   error: null,
+  notice: null,
+  lazyLimit: 50,
 }, "dot-js-todos-state");
 
-// Load todos from API on startup
 async function loadTodosFromAPI() {
   store.setState({ loading: true, error: null });
   try {
-    // Using a more reliable approach to get English todo items
-    const response = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=5');
-    const apiTodos = await response.json();
+    const apiTodos = await http.get("https://jsonplaceholder.typicode.com/todos?_limit=5");
+    if (!Array.isArray(apiTodos)) throw new Error("Unexpected API response");
     
     store.setState({
-      todos: apiTodos.map((todo, index) => ({
+      todos: apiTodos.map((todo) => ({
         id: todo.id,
-        text: `Todo: ${todo.title}`,  // Prefixing to make it clearer
+        text: `Todo: ${todo.title}`,
         done: todo.completed,
       })),
       loading: false,
@@ -55,8 +56,42 @@ async function loadTodosFromAPI() {
   }
 }
 
-// Call this function to demonstrate HTTP functionality
-// loadTodosFromAPI();
+async function addTodoViaAPI() {
+  const { posting } = store.getState();
+  const input = document.getElementById("todo-input");
+  if (!(input instanceof HTMLInputElement)) return;
+  const title = input.value.trim();
+  if (posting || !title) return;
+
+  store.setState({ posting: true, error: null, notice: null });
+  try {
+    const result = await http.post("https://jsonplaceholder.typicode.com/todos", {
+      title,
+      completed: false,
+      userId: 1,
+    });
+
+    const id =
+      result && typeof result === "object" && "id" in result ? Number(result.id) : NaN;
+
+    store.setState((prev) => ({
+      todos: [
+        ...prev.todos,
+        { id: Number.isFinite(id) ? id : nextTodoId(prev.todos), text: title, done: false },
+      ],
+      posting: false,
+      notice: Number.isFinite(id) ? `Posted to API (fake): id=${id}` : "Posted to API (fake)",
+    }));
+    input.value = "";
+    requestAnimationFrame(() => focusTodoInput());
+  } catch (error) {
+    store.setState({
+      posting: false,
+      error: "Failed to post todo to API",
+    });
+    console.error("Failed to post todo:", error);
+  }
+}
 
 const PATH_TO_FILTER = {
   "/": "all",
@@ -70,15 +105,11 @@ const FILTER_TO_PATH = {
   completed: "/completed",
 };
 
-/** Keep typing smooth because this demo renderer remounts on each update. */
-function setDraftAndRestoreCaret(value) {
-  store.setState({ draft: value });
-  requestAnimationFrame(() => {
-    const input = document.getElementById("todo-input");
-    if (!(input instanceof HTMLInputElement)) return;
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-  });
+function focusTodoInput() {
+  const input = document.getElementById("todo-input");
+  if (!(input instanceof HTMLInputElement)) return;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
 }
 
 function nextTodoId(todos) {
@@ -86,7 +117,7 @@ function nextTodoId(todos) {
 }
 
 function render() {
-  const { todos, draft, filter, loading, error } = store.getState();
+  const { todos, filter, loading, posting, error, notice, lazyLimit } = store.getState();
   const visibleTodos =
     filter === "active"
       ? todos.filter((t) => !t.done)
@@ -94,14 +125,13 @@ function render() {
       ? todos.filter((t) => t.done)
       : todos;
 
-  const todoItems = visibleTodos.map((todo) =>
+  const shouldLazyRender = ENABLE_LAZY_TODOS && visibleTodos.length > lazyLimit;
+  const renderedTodos = shouldLazyRender ? visibleTodos.slice(0, lazyLimit) : visibleTodos;
+
+  const todoItems = renderedTodos.map((todo) =>
     h("li", {
-      className: "todo-row",
+      className: todo.done ? "todo-row done" : "todo-row",
       "data-id": String(todo.id),
-      style: {
-        cursor: "pointer",
-        textDecoration: todo.done ? "line-through" : "none",
-      },
     }, [
       `${todo.done ? "[x]" : "[ ]"} ${todo.text} `,
       h("button", {
@@ -115,31 +145,75 @@ function render() {
     app,
     h("div", { className: "app" }, [
       h("h1", null, "dot-js example"),
-      error && h("div", { style: { color: "red" } }, error),
+      ENABLE_LAZY_TODOS &&
+        h("div", { className: "muted" }, "Perf flag enabled: VITE_LAZY_TODOS=1"),
+      notice && h("div", { className: "notice" }, notice),
+      error && h("div", { className: "error" }, error),
       loading && h("div", null, "Loading todos..."),
       h("ul", null, todoItems),
-      h("input", {
-        id: "todo-input",
-        value: draft,
-        onInput: (e) => setDraftAndRestoreCaret(e.target.value),
-        placeholder: "New todo...",
-      }),
-      h("button", {
-        onClick: () => {
-          const text = draft.trim();
+      shouldLazyRender &&
+        h("div", { className: "row" }, [
+          h("span", null, `Showing ${renderedTodos.length} / ${visibleTodos.length}`),
+          h("button", {
+            onClick: () =>
+              store.setState((prev) => ({ lazyLimit: prev.lazyLimit + 50 })),
+          }, "Show 50 more"),
+          h("button", { onClick: () => store.setState({ lazyLimit: 50 }) }, "Reset"),
+        ]),
+      h("form", {
+        onSubmit: (e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          if (!(form instanceof HTMLFormElement)) return;
+          const text = String(new FormData(form).get("todo") || "").trim();
           if (!text) return;
           store.setState((prev) => ({
             todos: [
               ...prev.todos,
               { id: nextTodoId(prev.todos), text, done: false },
             ],
-            draft: "",
           }));
+          form.reset();
+          requestAnimationFrame(() => focusTodoInput());
         },
-      }, "Add Todo"),
-      h("button", { onClick: () => navigate(FILTER_TO_PATH.all) }, "All"),
-      h("button", { onClick: () => navigate(FILTER_TO_PATH.active) }, "Active"),
-      h("button", { onClick: () => navigate(FILTER_TO_PATH.completed) }, "Completed"),
+        className: "row",
+      }, [
+        h("input", {
+          id: "todo-input",
+          name: "todo",
+          placeholder: "New todo...",
+        }),
+        h("button", { type: "submit" }, "Add Todo"),
+        h("button", {
+          type: "button",
+          disabled: posting,
+          onClick: addTodoViaAPI,
+          title: "Demonstrates http.post()",
+        }, posting ? "Posting..." : "Add via API"),
+      ]),
+      h("nav", { className: "nav" }, [
+        h("a", {
+          href: FILTER_TO_PATH.all,
+          onClick: (e) => {
+            e.preventDefault();
+            navigate(FILTER_TO_PATH.all);
+          },
+        }, "All"),
+        h("a", {
+          href: FILTER_TO_PATH.active,
+          onClick: (e) => {
+            e.preventDefault();
+            navigate(FILTER_TO_PATH.active);
+          },
+        }, "Active"),
+        h("a", {
+          href: FILTER_TO_PATH.completed,
+          onClick: (e) => {
+            e.preventDefault();
+            navigate(FILTER_TO_PATH.completed);
+          },
+        }, "Completed"),
+      ]),
       h("button", { 
         onClick: loadTodosFromAPI,
         disabled: loading,
@@ -148,49 +222,30 @@ function render() {
   );
 }
 
-/** Delegated delete handler: one listener for all current/future todo buttons. */
-function handleDeleteClick(event) {
-  const target = event.target;
-  if (!(target instanceof Element)) return;
-  const deleteBtn = target.closest(".todo-delete");
-  if (!deleteBtn) return;
-
+const stopDelete = delegate(app, "click", ".todo-delete", (event, deleteBtn) => {
+  event.preventDefault();
   event.stopPropagation();
-
   const id = Number(deleteBtn.getAttribute("data-id"));
   if (!Number.isFinite(id)) return;
 
   store.setState((prev) => ({
     todos: prev.todos.filter((t) => t.id !== id),
   }));
-}
+});
 
-/** Delegated row toggle handler for done/undone. */
-function handleRowToggleClick(event) {
+const stopToggle = delegate(app, "click", ".todo-row", (event, row) => {
   const target = event.target;
-  if (!(target instanceof Element)) return;
-
-  // Keep delete clicks from toggling the row.
-  if (target.closest(".todo-delete")) return;
-
-  const row = target.closest(".todo-row");
-  if (!row) return;
-
+  if (target instanceof Element && target.closest(".todo-delete")) return;
   const id = Number(row.getAttribute("data-id"));
   if (!Number.isFinite(id)) return;
 
   store.setState((prev) => ({
     todos: prev.todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
   }));
-}
+});
 
-app.addEventListener("click", handleDeleteClick);
-app.addEventListener("click", handleRowToggleClick);
-
-// Subscribe first so the router's initial setState triggers a render.
 store.subscribe(render);
 
-/** Sync URL path into the store on load, navigate(), and browser Back/Forward */
 const stopRouter = createRouter((path) => {
   const filter = PATH_TO_FILTER[path] ?? "all";
   const normalizedPath = PATH_TO_FILTER[path] ? path : "/";
@@ -200,14 +255,13 @@ const stopRouter = createRouter((path) => {
     return;
   }
 
-  store.setState({ path: normalizedPath, filter });
+  store.setState({ filter });
 });
 
-/** Example cleanup if hot-reload or tests tear down the app */
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    app.removeEventListener("click", handleDeleteClick);
-    app.removeEventListener("click", handleRowToggleClick);
+    stopDelete();
+    stopToggle();
     stopRouter();
   });
 }

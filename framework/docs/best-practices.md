@@ -1,5 +1,3 @@
-<!-- best-practices.md: guidelines for apps built with dot-js. -->
-
 # Best practices and guidelines
 
 ## Structure
@@ -19,12 +17,12 @@
 
 ## Events
 
-- Use **props** (`onClick`, …) for elements you create in the same render.
-- Use **`delegate`** for lists that re-mount often or for global shortcuts.
+- Use **props** (`onClick`, …) for elements you create in the same render. On re-render, `mount()` replaces the old nodes and their listeners.
+- Use **`delegate`** for long lists or global shortcuts so you attach one listener to a stable root.
 
 ## Performance
 
-- If lists grow large, add **windowing** or **lazy rendering** behind a flag (see root README “bonus” section).
+- If lists grow large, add **windowing** or **lazy rendering** behind a flag (see root README “bonus” section). The example app includes `VITE_LAZY_TODOS=1` as a simple reference.
 - Measure before optimizing: Chrome Performance panel is enough for student projects.
 
 ## Review checklist

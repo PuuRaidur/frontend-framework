@@ -1,5 +1,3 @@
-<!-- installation.md: how to install dependencies and link the workspace package. -->
-
 # Installation
 
 ## 1. Clone the repository

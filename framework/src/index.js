@@ -6,6 +6,6 @@
 
 export { h, mount, text } from "./dom.js";
 export { createStore } from "./state.js";
-export { createRouter, navigate } from "./router.js";
+export { createRouter, navigate, currentPath } from "./router.js";
 export { delegate } from "./events.js";
 export { http } from "./http.js";

@@ -1,5 +1,3 @@
-<!-- features.md: API overview with small code samples. -->
-
 # Features and API
 
 ## DOM: `h`, `mount`, `text`
@@ -8,6 +6,13 @@
 - **`mount(parent, vnode)`** — replace `parent`’s children with the rendered tree.
 - **`text(str)`** — optional explicit text vnode (plain strings in `children` also work).
 
+### Event props (declarative handlers)
+
+- Event handlers live in the vnode tree you build in `render()` (`onClick`, `onInput`, `onSubmit`, …).
+- A re-render is just another `mount()` call, so old nodes (and their listeners) get replaced.
+- For long lists, use **`delegate`** to attach one stable listener on a root element.
+- There are no special “modifiers” — use the native event object (`ev.preventDefault()`, `ev.stopPropagation()`, etc.).
+
 ```javascript
 import { h, mount } from "dot-js";
 
@@ -15,6 +20,23 @@ mount(
   document.getElementById("app"),
   h("button", { onClick: () => alert("ok") }, "Click")
 );
+```
+
+Render-time handlers + re-mount model:
+
+```javascript
+import { h, mount, createStore } from "dot-js";
+
+const root = document.getElementById("app");
+const store = createStore({ n: 0 });
+
+function render() {
+  const { n } = store.getState();
+  mount(root, h("button", { onClick: () => store.setState({ n: n + 1 }) }, `n=${n}`));
+}
+
+store.subscribe(render);
+render();
 ```
 
 ## State: `createStore`

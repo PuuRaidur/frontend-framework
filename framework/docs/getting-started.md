@@ -1,5 +1,3 @@
-<!-- getting-started.md: smallest end-to-end app using dot-js. -->
-
 # Getting started
 
 ## Mental model

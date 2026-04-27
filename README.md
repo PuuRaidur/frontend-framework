@@ -1,5 +1,3 @@
-<!-- Root README: project overview, setup, usage, and bonus flags for reviewers. -->
-
 # dot-js workspace
 
 Minimal JavaScript UI toolkit (SPA-oriented) with a tiny virtual DOM, reactive store, history router, delegated events, and HTTP helpers. This repo is a **npm workspace**: [`framework/`](framework/) contains the framework source and markdown docs; [`example/`](example/) is a Vite app that imports `dot-js` locally.
@@ -10,8 +8,6 @@ Minimal JavaScript UI toolkit (SPA-oriented) with a tiny virtual DOM, reactive s
 - **`example/`** — Demonstration app; run it to verify the toolchain and imports.
 
 Detailed architecture and API notes live in [framework/docs/README.md](framework/docs/README.md).
-
-**Pair work:** see [framework/docs/team-split.md](framework/docs/team-split.md) for a suggested **two-person** split of responsibilities (framework core vs router/HTTP/example + docs).
 
 ## Prerequisites
 
@@ -63,7 +59,8 @@ Authoritative docs for building apps with dot-js:
 
 ## Additional / bonus functionality
 
-- **Performance experiments:** keep them behind a feature flag or `import.meta.env` variable so default behavior stays unchanged (e.g. windowed lists for huge collections).
+- **Performance experiments:** keep them behind a flag so the default behavior stays unchanged.
+  - Example: set `VITE_LAZY_TODOS=1` to make the example app render long lists in chunks.
 - **HTTP:** use `http.get` / `http.post` from `dot-js` for JSON-friendly `fetch` wrappers.
 
 Document any flags you add in this section.

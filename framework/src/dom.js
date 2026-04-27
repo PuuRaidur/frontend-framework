@@ -1,8 +1,6 @@
-/**
- * Virtual node helpers and DOM mounting.
- * This is intentionally small: enough to create trees, nest nodes, set props/styles,
- * and wire event props (onClick, onInput, …) without calling addEventListener in app code.
- */
+// Tiny "virtual DOM":
+// - `h()` builds plain objects that describe a DOM tree
+// - `mount()` turns that tree into real DOM under a root element
 
 /**
  * Flattens mixed children (arrays, nested arrays) into a single array of vnodes or strings.
@@ -50,7 +48,6 @@ export function text(value) {
  * @param {Record<string, string>} style
  */
 function applyStyle(el, style) {
-  // Object.assign works with camelCase CSS property names on CSSStyleDeclaration.
   Object.assign(el.style, style);
 }
 
@@ -60,13 +57,19 @@ function applyStyle(el, style) {
  * @param {Record<string, unknown>} props
  */
 function bindEventProps(el, props) {
+  const eventNameFromProp = (key) => {
+    const raw = key.slice(2);
+    if (!raw) return null;
+    const lower = raw.toLowerCase();
+    if (lower === "doubleclick") return "dblclick";
+    return lower;
+  };
+
   for (const [key, val] of Object.entries(props)) {
     if (!key.startsWith("on") || typeof val !== "function") continue;
-    const evt = key.slice(2).toLowerCase();
+    const evt = eventNameFromProp(key);
     if (!evt) continue;
-    el.addEventListener(evt, /** @type {EventListener} */ (e) => {
-      /** @type {Function} */ (val)(e);
-    });
+    el.addEventListener(evt, /** @type {EventListener} */ (val));
   }
 }
 

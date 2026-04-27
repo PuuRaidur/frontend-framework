@@ -1,5 +1,3 @@
-<!-- framework/README.md: what lives in this package and where to read more. -->
-
 # `dot-js` package
 
 This folder is the **framework** workspace package (`name`: `dot-js`). Source lives in [`src/`](src/); hand-written documentation lives in [`docs/`](docs/).

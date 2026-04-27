@@ -1,5 +1,3 @@
-<!-- architecture.md: high-level design of dot-js modules and data flow. -->
-
 # Architecture and design principles
 
 ## Goals
@@ -38,4 +36,5 @@ flowchart LR
 ## Design trade-offs
 
 - **Simplicity over batching** — this starter does not implement a diffing engine; full re-mounts are acceptable for learning apps.
+- **Declarative event props** — handlers live in the vnode tree (`onClick`, `onInput`, …). On each `mount()` the old DOM (and its listeners) are replaced. If you want a “attach once” listener on a stable root, use event delegation.
 - **Single active router** — `router.js` uses one global listener for the minimal API; replace with a scoped design if you outgrow it.
