@@ -61,6 +61,7 @@ Authoritative docs for building apps with dot-js:
 
 - **Performance experiments:** keep them behind a flag so the default behavior stays unchanged.
   - Example: set `VITE_LAZY_TODOS=1` to make the example app render long lists in chunks.
+  - Use `VITE_TODO_COUNT=1000 VITE_MEASURE_RENDER=1` to generate a larger list and log render measurements in the browser console.
 - **HTTP:** use `http.get` / `http.post` from `dot-js` for JSON-friendly `fetch` wrappers.
 
 Document any flags you add in this section.

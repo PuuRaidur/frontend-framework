@@ -18,13 +18,35 @@ if (!app) throw new Error('Missing #app root — check example/index.html');
 
 // Optional perf flag: render long lists in chunks.
 const ENABLE_LAZY_TODOS = import.meta.env.VITE_LAZY_TODOS === "1";
+const ENABLE_RENDER_MEASURE = import.meta.env.VITE_MEASURE_RENDER === "1";
+const PERF_TODO_COUNT = Number(import.meta.env.VITE_TODO_COUNT || 3);
 
-const store = createStore({
-  todos: [
+function createInitialTodos() {
+  const baseTodos = [
     { id: 1, text: "Buy milk", done: false },
     { id: 2, text: "Go out for a walk", done: false },
     { id: 3, text: "Buy groceries", done: false },
-  ],
+  ];
+
+  if (!Number.isFinite(PERF_TODO_COUNT) || PERF_TODO_COUNT <= baseTodos.length) {
+    return baseTodos;
+  }
+
+  return [
+    ...baseTodos,
+    ...Array.from({ length: PERF_TODO_COUNT - baseTodos.length }, (_, index) => {
+      const id = baseTodos.length + index + 1;
+      return {
+        id,
+        text: `Generated performance todo ${id}`,
+        done: id % 3 === 0,
+      };
+    }),
+  ];
+}
+
+const store = createStore({
+  todos: createInitialTodos(),
   filter: "all", // "all" | "active" | "completed"
   loading: false,
   posting: false,
@@ -118,6 +140,7 @@ function nextTodoId(todos) {
 
 function render() {
   const { todos, filter, loading, posting, error, notice, lazyLimit } = store.getState();
+  const renderStart = ENABLE_RENDER_MEASURE ? performance.now() : 0;
   const visibleTodos =
     filter === "active"
       ? todos.filter((t) => !t.done)
@@ -220,6 +243,16 @@ function render() {
       }, "Load from API"),
     ])
   );
+
+  if (ENABLE_RENDER_MEASURE) {
+    console.info("[dot-js perf]", {
+      lazyRendering: shouldLazyRender,
+      totalTodos: todos.length,
+      visibleTodos: visibleTodos.length,
+      mountedRows: renderedTodos.length,
+      renderMs: Number((performance.now() - renderStart).toFixed(2)),
+    });
+  }
 }
 
 const stopDelete = delegate(app, "click", ".todo-delete", (event, deleteBtn) => {
