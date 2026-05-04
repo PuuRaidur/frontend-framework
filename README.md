@@ -65,3 +65,12 @@ Authoritative docs for building apps with dot-js:
 - **HTTP:** use `http.get` / `http.post` from `dot-js` for JSON-friendly `fetch` wrappers.
 
 Document any flags you add in this section.
+
+## Afterword
+
+Big thanks to my teammate Eike Langerbaur.
+She was the major developer of this project,
+putting in the most work and also a good one.
+Without her, the completion of the project would have taken much more time.
+Also thanks to my other teammate, Magdaleena Teinemaa, who joined in the finishing phase of the project and
+also did some good contributions toward the project.
